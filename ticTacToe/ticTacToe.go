@@ -9,6 +9,8 @@ import (
 type status uint8
 type moveVal uint8
 
+type TestMoveStatus uint8
+
 const constPlayer1MoveVal moveVal = 3
 const constPlayer2MoveVal moveVal = 5
 const constNotMovedVal moveVal = 0
@@ -20,7 +22,14 @@ const (
 	statusPlayer2Win
 )
 
-//Board  q
+const (
+	MoveStatusYouWin TestMoveStatus = iota
+	MoveStatusOpponentWin
+	MoveStatusNotAllowed
+	MoveStatusGameContinues
+)
+
+//Board
 type Board struct {
 	cells        [][]moveVal
 	size         uint8
@@ -151,6 +160,73 @@ func (board *Board) String() string {
 /***************************************************************************
 * check win condition for board.
 ****************************************************************************/
+
+func (board *Board) TryMove(player def.Player, input uint8) TestMoveStatus {
+	if !board.CanAllowPlayerInput(input) {
+		return MoveStatusNotAllowed
+	}
+	row, col := board.getRowAndColFromInput(input)
+
+	numHorizontalSelf := uint8(0)
+	numVerticalSelf := uint8(0)
+	numDiagonal1Self := uint8(0) // "\"
+	numDiagonal2Self := uint8(0) // "/"
+
+	numHorizontalOpponent := uint8(0)
+	numVerticalOpponent := uint8(0)
+	numDiagonal1Opponent := uint8(0) // "\"
+	numDiagonal2Opponent := uint8(0) // "/"
+
+	var moveValSelf moveVal
+	var moveValOpponent moveVal
+	if player == def.Player1 {
+		moveValSelf = constPlayer1MoveVal
+		moveValOpponent = constPlayer2MoveVal
+	} else {
+		moveValSelf = constPlayer2MoveVal
+		moveValOpponent = constPlayer1MoveVal
+	}
+	//brute foce, check for each cell, is it possible for opponent or myself to win for each slot
+	for i := uint8(0); i < board.size; i = i + 1 {
+		if board.cells[row][i] == moveValSelf {
+			numHorizontalSelf += 1
+		} else if board.cells[row][i] == moveValOpponent {
+			numHorizontalOpponent += 1
+		}
+
+		if board.cells[i][col] == moveValSelf {
+			numVerticalSelf += 1
+		} else if board.cells[i][col] == moveValOpponent {
+			numVerticalOpponent += 1
+		}
+
+		if row == col {
+			if board.cells[i][i] == moveValSelf {
+				numDiagonal1Self += 1
+			} else if board.cells[i][i] == moveValOpponent {
+				numDiagonal1Opponent += 1
+			}
+		}
+
+		if row+col == board.size-1 {
+			if board.cells[i][board.size-1-i] == moveValSelf {
+				numDiagonal2Self += 1
+			} else if board.cells[i][board.size-1-i] == moveValOpponent {
+				numDiagonal2Opponent += 1
+			}
+		}
+	}
+
+	if numVerticalSelf == board.size-1 || numHorizontalSelf == board.size-1 || numDiagonal1Self == board.size-1 || numDiagonal2Self == board.size-1 {
+		return MoveStatusYouWin
+	}
+
+	if numVerticalOpponent == board.size-1 || numHorizontalOpponent == board.size-1 || numDiagonal1Opponent == board.size-1 || numDiagonal2Opponent == board.size-1 {
+		return MoveStatusOpponentWin
+	}
+
+	return MoveStatusGameContinues
+}
 
 //check board from left to right
 func (board *Board) doCheckHorizontal(row uint8) status {
@@ -284,6 +360,15 @@ func (board *Board) IsPlayer1Win() bool {
 // IsPlayer2Win check if player 2 is the winner
 func (board *Board) IsPlayer2Win() bool {
 	return board.status == statusPlayer2Win
+}
+
+func (board *Board) isPlayerWin(player def.Player) bool {
+	switch player {
+	case def.Player1:
+		return board.IsPlayer1Win()
+	default:
+		return board.IsPlayer2Win()
+	}
 }
 
 // IsDraw check if the game is a draw

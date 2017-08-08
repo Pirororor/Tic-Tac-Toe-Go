@@ -19,3 +19,11 @@ const (
 	ModeQuit //quit
 	ModeMax  //maximum allowed mode value
 )
+
+func GetOtherPlayer(player Player) Player {
+	if player == Player1 {
+		return Player2
+	} else {
+		return Player1
+	}
+}

@@ -87,12 +87,7 @@ func (player *AIPlayer) GetNextMove() uint8 {
 	time.Sleep(1 * time.Second)
 
 	for {
-		randdom := rand.Intn(int(player.board.LargestInputAllowed()))
-		input := uint8(randdom + 1)
-
-		if !player.board.CanAllowPlayerInput(input) {
-			continue
-		}
+		input := player.calcNextMoveSimpleDefenseAttack()
 		fmt.Println(player.name + " selects " + strconv.Itoa(int(input)))
 		return input
 	}
@@ -104,6 +99,40 @@ func (player *AIPlayer) GetPlayerID() def.Player {
 
 func (player *AIPlayer) GetName() string {
 	return player.name
+}
+
+func (player *AIPlayer) calcNextMoveSimpleDefenseAttack() uint8 {
+
+	board := player.board
+	var potentialBlock uint8
+	hasPotentialBlock := false
+	for i := uint8(1); i <= board.LargestInputAllowed(); i = i + 1 {
+		moveStatus := board.TryMove(player.GetPlayerID(), i)
+		switch moveStatus {
+		case ticTacToe.MoveStatusYouWin:
+			return i
+		case ticTacToe.MoveStatusOpponentWin:
+			potentialBlock = i
+			hasPotentialBlock = true
+		}
+	}
+	if hasPotentialBlock {
+		return potentialBlock
+	}
+
+	return player.randomMove()
+}
+
+func (player *AIPlayer) randomMove() uint8 {
+	for {
+		randdom := rand.Intn(int(player.board.LargestInputAllowed()))
+		input := uint8(randdom + 1)
+
+		if !player.board.CanAllowPlayerInput(input) {
+			continue
+		}
+		return input
+	}
 }
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////
